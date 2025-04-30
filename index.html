@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor Texturas Cloth_mesh</title>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.min.js"></script>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        #controls {
+            position: absolute; 
+            top: 10px; 
+            left: 10px;
+            background: rgba(255, 255, 255, 0.92); 
+            padding: 12px;
+            border-radius: 10px;
+            z-index: 100; 
+            width: 280px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border: 1px solid #e0e0e0;
+        }
+        
+        #lighting-controls {
+            position: absolute; 
+            top: 10px;
+            bottom: 10px;
+            right: 20px;
+            background: rgba(255,255,255,0.92);
+            padding: 12px;
+            border-radius: 10px;
+            z-index: 100; 
+            width: 190px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border: 1px solid #e0e0e0;
+            max-height: 1000vh;
+            overflow-y: auto;
+        }
+        
+        #loading {
+            position: absolute; 
+            top: 50%; 
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgb(208, 255, 0); 
+            background: rgba(0,0,0,0.7);
+            padding: 20px; 
+            border-radius: 8px; 
+            font-size: 16px;
+        }
+        
+        button, input[type="file"] {
+            width: 100%; 
+            padding: 8px; 
+            margin: 6px 0;
+            border-radius: 6px; 
+            border: 1px solid #ddd;
+            font-size: 13px;
+        }
+        
+        button {
+            background: #300f7c; 
+            color: white;
+            border: none; 
+            cursor: pointer; 
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        
+        #status {
+            margin-top: 12px; 
+            padding: 8px;
+            background: #f8f8f8; 
+            border-radius: 6px; 
+            font-size: 13px;
+            border: 1px solid #eee;
+        }
+        
+        .control-group {
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .control-group:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        
+        .control-group h4 {
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            color: #300f7c;
+            font-weight: 600;
+        }
+        
+        .slider-container {
+            margin-bottom: 8px;
+        }
+        
+        .slider-container label {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .slider-container input[type="range"] {
+            width: 100%;
+            height: 4px;
+            accent-color: #300f7c;
+        }
+        
+        .color-picker {
+            width: 100%;
+            height: 25px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .capture-buttons {
+            display: flex;
+            gap: 6px;
+        }
+        
+        .capture-btn {
+            flex: 1;
+            background: #33343a !important;
+            font-size: 11px !important; /* Reducido de 12px */
+            padding: 5px !important; /* Reducido de 6px */
+        }
+        
+        .transparent-btn {
+            background: #33343a !important;
+            margin-top: 5px;
+            font-size: 12px;
+            padding: 6px;
+        }
+        
+        .value-display {
+            font-size: 11px;
+            color: #777;
+            text-align: right;
+            margin-top: 2px;
+        }
+         
+        /* Paleta de colores mejorada */
+#color-palette {
+    position: absolute;
+    bottom: 10px;
+    left: 10px; /* Posición izquierda */
+    background: rgba(255, 255, 255, 0.95);
+    padding: 12px;
+    border-radius: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    width: 270px;
+    max-height: 300px;
+    overflow-y: auto;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    z-index: 100;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+.color-swatch {
+    width: 24px; /* Más pequeño */
+    height: 16px;
+    border-radius: 20%; /* Forma circular */
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.2s ease-out;
+}
+
+.color-swatch:hover {
+    transform: scale(1.15);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+}
+
+.color-swatch.active {
+    transform: scale(1.2);
+    box-shadow: 0 0 0 3px #300f7c;
+}
+        /* Estilos para móvil */
+@media (max-width: 768px) {
+    #controls {
+        width: 90%;
+        left: 50%;
+        transform: translateX(-50%);
+        top: auto;
+        bottom: 10px;
+        padding: 8px;
+        display: none; /* Oculto por defecto en móvil */
+    }
+    
+    #lighting-controls {
+        width: 90%;
+        right: auto;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: 60px;
+        max-height: 40vh;
+        overflow-y: auto;
+        display: none; /* Oculto por defecto */
+    }
+    
+    .mobile-control-btn {
+        display: block !important;
+        position: fixed;
+        z-index: 1000;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #300f7c;
+        color: white;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    
+    #toggleMainBtn {
+        left: 10px;
+        top: 10px;
+    }
+    
+    #toggleLightingBtn {
+        right: 10px;
+        top: 10px;
+    }
+    
+    /* Ocultar botones en desktop */
+    @media (min-width: 769px) {
+        .mobile-control-btn {
+            display: none !important;
+        }
+        #controls, #lighting-controls {
+            display: block !important;
+        }
+    }
+}
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h3 style="margin:0 0 10px 0; font-size:16px; color:#333;">3D FASHION LAB</h3>
+        <input type="file" id="textureInput" accept="image/*">
+        <button id="applyBtn">Aplicar Textura</button>
+        <button id="resetBtn">Restaurar Original</button>
+        <button id="resetCameraBtn">Centrar 3D</button>
+        <button id="downloadTemplateBtn">Descargar Plantilla</button>
+        <div class="capture-buttons">
+            <button id="capturePngBtn" class="capture-btn">PNG</button>
+            <button id="captureJpgBtn" class="capture-btn">JPG</button>
+            <button id="captureVideoBtn" class="capture-btn">360° Video</button>
+        </div>
+        <div id="status">Cargando modelo...</div>
+    </div>
+
+    <div id="lighting-controls">
+        <h3 style="margin:0 0 12px 0; font-size:15px; color:#333;">Controles de Visualización</h3>
+        
+        <div class="control-group">
+            <h4>Luz Ambiental</h4>
+            <div class="slider-container">
+                <label for="ambientIntensity">Intensidad</label>
+                <input type="range" id="ambientIntensity" min="0" max="2" step="0.1" value="0.2">
+                <div class="value-display"><span id="ambientIntensityValue">0.2</span></div>
+            </div>
+            <label for="ambientColor">Color:</label>
+            <input type="color" id="ambientColor" class="color-picker" value="#ffffff">
+        </div>
+        
+        <div class="control-group">
+            <h4>Luz Direccional</h4>
+            <div class="slider-container">
+                <label for="directionalIntensity">Intensidad</label>
+                <input type="range" id="directionalIntensity" min="0" max="2" step="0.1" value="0.5">
+                <div class="value-display"><span id="directionalIntensityValue">0.5</span></div>
+            </div>
+            <label for="directionalColor">Color:</label>
+            <input type="color" id="directionalColor" class="color-picker" value="#ffffff">
+            
+            <div class="slider-container">
+                <label for="lightPosX">Posición X</label>
+                <input type="range" id="lightPosX" min="-10" max="10" step="0.5" value="3">
+                <div class="value-display"><span id="lightPosXValue">3.0</span></div>
+            </div>
+            <div class="slider-container">
+                <label for="lightPosY">Posición Y</label>
+                <input type="range" id="lightPosY" min="0" max="20" step="0.5" value="10">
+                <div class="value-display"><span id="lightPosYValue">10.0</span></div>
+            </div>
+            <div class="slider-container">
+                <label for="lightPosZ">Posición Z</label>
+                <input type="range" id="lightPosZ" min="-10" max="10" step="0.5" value="5">
+                <div class="value-display"><span id="lightPosZValue">5.0</span></div>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <h4>Materiales</h4>
+            <div class="slider-container">
+                <label for="roughness">Reflejos</label>
+                <input type="range" id="roughness" min="0" max="3" step="0.05" value="2">
+                <div class="value-display"><span id="roughnessValue">2</span></div>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <h4>Fondo</h4>
+            <label for="backgroundColor">Color:</label>
+            <input type="color" id="backgroundColor" class="color-picker" value="#f0f0f0">
+            <button id="transparentBgBtn" class="transparent-btn">Fondo Transparente</button>
+        </div>
+        
+        <button id="resetLightingBtn" style="margin-top:8px;">Restablecer Valores</button>
+    </div>
+
+    <div id="loading">Cargando modelo 3D...</div>
+
+    <script>
+        // 1. Configuración inicial de Three.js (ORDEN CORRECTO)
+    const renderer = new THREE.WebGLRenderer({ 
+        antialias: true,
+        powerPreference: "high-performance",
+        alpha: true
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.body.appendChild(renderer.domElement);
+
+    // 2. Crear escena con fondo temporal
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xf0f0f0); // Fondo gris temporal
+
+    // 3. Mostrar estado inicial
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('status').textContent = 'Cargando modelo...';
+
+    // 4. Cargar el fondo (versión simplificada y robusta)
+    new THREE.TextureLoader().load('fondo.jpg', 
+        (texture) => {
+            texture.generateMipmaps = false;
+            texture.minFilter = THREE.LinearFilter;
+            scene.background = texture;
+            console.log("Fondo cargado correctamente");
+        },
+        undefined,
+        (error) => {
+            console.error("Error cargando fondo:", error);
+            // Mantenemos el fondo gris si falla
+        }
+    );
+        // Configurar reflejos básicos (MANTIENES ESTO IGUAL)
+const envTexture = new THREE.TextureLoader().load('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOwQAADsEBuJFr7QAAABl0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC4xMzQDW3oAAAAdSURBVFhH7c8xAQAgDABR0/mbO5hAIHf1qV0B+3YH6Yw1oUU7RjEAAAAASUVORK5CYII=');
+envTexture.mapping = THREE.EquirectangularReflectionMapping;
+scene.environment = envTexture;
+
+// ===== NUEVO SISTEMA DE ILUMINACIÓN ===== //
+// 1. Eliminar luces existentes (importante)
+scene.children = scene.children.filter(child => !(child instanceof THREE.Light));
+
+// 2. Luz ambiente mínima (solo para evitar negros puros)
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.15); // Muy baja intensidad
+scene.add(ambientLight);
+
+// 3. Luz frontal principal (sin sombras para suavizar)
+const mainLight = new THREE.DirectionalLight(0xffffff, 0.9);
+mainLight.position.set(3, 5, 2); // Posición frontal-alta
+scene.add(mainLight);
+
+// 4. Luz lateral de relleno (ilumina costados)
+const fillLight = new THREE.DirectionalLight(0xffffff, 0.6);
+fillLight.position.set(-3, 3, 2); // Posición opuesta a la principal
+scene.add(fillLight);
+
+// 5. Luz trasera (evita silueta oscura)
+const backLight = new THREE.DirectionalLight(0xffffff, 0.4);
+backLight.position.set(0, 3, -3); // Posición trasera
+scene.add(backLight);
+
+        // 3. Cámara y controles
+        const aspect = window.innerWidth / window.innerHeight;
+        const camera = new THREE.OrthographicCamera(
+            -5 * aspect, 5 * aspect, 5, -5, 0.1, 1000
+        );
+        camera.position.set(0, 1.5, 5);
+        camera.zoom = 10;
+        camera.updateProjectionMatrix();
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.enableZoom = true;
+        controls.zoomSpeed = 1.0;
+
+        // 4. Variables del sistema
+        let model = null;
+        const textureLoader = new THREE.TextureLoader();
+        const loader = new THREE.GLTFLoader();
+        let targetTextures = [];
+
+        // 5. Cargar modelo
+        loader.load('modelo.glb', function(gltf) {
+            model = gltf.scene;
+            scene.add(model);
+        
+            
+            // Activar sombras para todas las partes del modelo
+            model.traverse((node) => {
+                if (node.isMesh) {
+        node.castShadow = false; // Desactivamos sombras para telas
+        node.receiveShadow = false;
+        
+        if (node.material) {
+            // Configuración ANTI-PLÁSTICO para telas
+            node.material.envMap = envTexture;
+            node.material.envMapIntensity = 0.1; // Reflejos casi invisibles
+            node.material.roughness = 2;       // Máximo mate
+            node.material.metalness = 0.0;        // Cero metal
+            
+            // Opcional: si el material lo soporta
+            if ('sheen' in node.material) {
+                node.material.sheen = 0.1;        // Leve brillo textil
+                node.material.sheenRoughness = 0.9;
+            }
+            
+            node.material.needsUpdate = true;
+            
+            // Corrección para doble cara
+            node.material.side = THREE.DoubleSide;
+        }
+    }
+                
+                // Detección de texturas especiales
+                if (node.isMesh && node.material && node.material.map) {
+                    const texture = node.material.map;
+                    const meshName = node.name || '';
+                    const textureName = texture.name || '';
+                    
+                    if (meshName.includes('Cloth_mesh') || meshName.includes('BindedTrim_') ||
+                        textureName.includes('Cloth_mesh') || textureName.includes('BindedTrim_')) {
+                        
+                        targetTextures.push({
+                            node: node,
+                            originalTexture: texture,
+                            material: node.material,
+                            uvParams: {
+                                repeat: texture.repeat.clone(),
+                                offset: texture.offset.clone(),
+                                rotation: texture.rotation,
+                                wrapS: texture.wrapS,
+                                wrapT: texture.wrapT
+                            },
+                            type: meshName.includes('Cloth_mesh') ? 'Cloth_mesh' : 'BindedTrim'
+                        });
+                        
+                        node.material.side = THREE.DoubleSide;
+                        node.material.needsUpdate = true;
+                    }
+                }     
+            });
+            
+            document.getElementById('loading').style.display = 'none';
+            // Aplicar diseño_base.jpg automáticamente (mismo método que carga manual)
+new THREE.TextureLoader().load('diseño_base.jpg', 
+    function(texture) {
+        texture.flipY = false;
+        texture.encoding = THREE.sRGBEncoding;
+        
+        // Aplica idéntico a tu función de carga manual
+        targetTextures.forEach(item => {
+            try {
+                // Copia parámetros UV exactos
+                texture.repeat.copy(item.uvParams.repeat);
+                texture.offset.copy(item.uvParams.offset);
+                texture.rotation = item.uvParams.rotation;
+                texture.wrapS = item.uvParams.wrapS;
+                texture.wrapT = item.uvParams.wrapT;
+                
+                // Clona material y aplica textura
+                const newMaterial = item.material.clone();
+                newMaterial.map = texture;
+                newMaterial.needsUpdate = true;
+                
+                item.node.material = newMaterial;
+            } catch (error) {
+                console.error("Error aplicando diseño base a", item.node.name, error);
+            }
+        });
+        
+        updateStatus("Diseño base aplicado correctamente");
+        renderer.render(scene, camera); // Actualiza visualización
+        
+    }, 
+    undefined, 
+    function(error) {
+        console.warn("No se encontró diseño_base.jpg - Usando texturas originales");
+        updateStatus("AVISO: Diseño base no encontrado", false);
+    }
+);
+            updateStatus(`Modelo cargado correctamente`);
+
+            // Ajustar cámara
+            const box = new THREE.Box3().setFromObject(model);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
+            
+            camera.position.copy(center);
+            camera.position.z = size.length() * 1.5;
+            controls.target.copy(center);
+            controls.update();
+
+        }, undefined, function(error) {
+            console.error("Error:", error);
+            updateStatus("Error al cargar el modelo", true);
+        });
+
+        // 6. Funciones auxiliares
+        function updateStatus(message, isError = false) {
+            const statusElement = document.getElementById('status');
+            statusElement.textContent = message;
+            statusElement.style.color = isError ? 'red' : 'inherit';
+        }
+
+        function replaceTextures(newTexture) {
+            if (!newTexture.image) {
+                updateStatus("Textura no válida", true);
+                return 0;
+            }
+
+            newTexture.flipY = false;
+            newTexture.encoding = THREE.sRGBEncoding;
+            
+            let appliedCount = 0;
+            
+            targetTextures.forEach(item => {
+                try {
+                    newTexture.repeat.copy(item.uvParams.repeat);
+                    newTexture.offset.copy(item.uvParams.offset);
+                    newTexture.rotation = item.uvParams.rotation;
+                    newTexture.wrapS = item.uvParams.wrapS;
+                    newTexture.wrapT = item.uvParams.wrapT;
+                    
+                    const newMaterial = item.material.clone();
+                    newMaterial.map = newTexture;
+                    newMaterial.needsUpdate = true;
+                    
+                    item.node.material = newMaterial;
+                    appliedCount++;
+                } catch (error) {
+                    console.error(`Error aplicando textura:`, error);
+                }
+            });
+            
+            updateStatus(`Textura aplicada a ${appliedCount} partes`);
+            renderer.render(scene, camera);
+            return appliedCount;
+        }
+
+        function restoreOriginalTextures() {
+            targetTextures.forEach(item => {
+                try {
+                    const originalMaterial = item.material.clone();
+                    originalMaterial.map = item.originalTexture;
+                    originalMaterial.needsUpdate = true;
+                    item.node.material = originalMaterial;
+                } catch (error) {
+                    console.error(`Error restaurando textura:`, error);
+                }
+            });
+            
+            updateStatus("Texturas originales restauradas");
+            renderer.render(scene, camera);
+        }
+
+        function captureImage(format) {
+    if (!model) {
+        updateStatus("No hay modelo cargado", true);
+        return;
+    }
+
+function updateStatus(message, isError = false) {
+    const statusElement = document.getElementById('status');
+    statusElement.textContent = message;
+    statusElement.style.color = isError ? 'red' : 'inherit';
+}
+
+    // Guardar configuración actual
+    const currentBackground = scene.background;
+    const currentClearAlpha = renderer.getClearAlpha();
+    const originalSize = {
+        width: renderer.domElement.width,
+        height: renderer.domElement.height
+    };
+    
+    // Configurar para captura de alta calidad
+    const scaleFactor = 2; // Factor de escala para mejorar calidad
+    const tempWidth = window.innerWidth * scaleFactor;
+    const tempHeight = window.innerHeight * scaleFactor;
+    
+    // Ajustar renderizador temporalmente
+    renderer.setSize(tempWidth, tempHeight, false);
+    camera.aspect = tempWidth / tempHeight;
+    
+    if (camera.isOrthographicCamera) {
+        camera.left = -5 * camera.aspect;
+        camera.right = 5 * camera.aspect;
+    }
+    
+    camera.updateProjectionMatrix();
+    
+    if (format === 'png') {
+        scene.background = null;
+        renderer.setClearAlpha(0);
+    }
+    
+    // Renderizar con nueva configuración
+    renderer.render(scene, camera);
+    
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `captura-${timestamp}.${format}`;
+    
+    // Crear canvas temporal para máxima calidad
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = tempWidth;
+    tempCanvas.height = tempHeight;
+    const ctx = tempCanvas.getContext('2d');
+    ctx.drawImage(renderer.domElement, 0, 0, tempWidth, tempHeight);
+    
+    let dataUrl;
+    if (format === 'png') {
+        dataUrl = tempCanvas.toDataURL('image/png', 1.0); // Calidad máxima para PNG
+    } else {
+        dataUrl = tempCanvas.toDataURL('image/jpeg', 0.95); // 95% calidad para JPG
+    }
+    
+    // Restaurar configuración original
+    renderer.setSize(originalSize.width, originalSize.height);
+    camera.aspect = originalSize.width / originalSize.height;
+    
+    if (camera.isOrthographicCamera) {
+        camera.left = -5 * camera.aspect;
+        camera.right = 5 * camera.aspect;
+    }
+    
+    camera.updateProjectionMatrix();
+    scene.background = currentBackground;
+    renderer.setClearAlpha(currentClearAlpha);
+    renderer.render(scene, camera);
+    
+    // Descargar la imagen
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    updateStatus(`Captura guardada: ${filename}`);
+}
+
+        // 7. Manejadores de eventos
+        document.getElementById('applyBtn').addEventListener('click', function() {
+            const fileInput = document.getElementById('textureInput');
+            if (!fileInput.files.length) {
+                updateStatus("Selecciona un archivo primero", true);
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                textureLoader.load(e.target.result, 
+                    function(texture) {
+                        replaceTextures(texture);
+                    },
+                    undefined,
+                    function(error) {
+                        console.error("Error cargando textura:", error);
+                        updateStatus("Error al cargar la textura", true);
+                    }
+                );
+            };
+            reader.readAsDataURL(file);
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', function() {
+            if (targetTextures.length > 0) {
+                restoreOriginalTextures();
+            } else {
+                updateStatus("No hay texturas para restaurar");
+            }
+        });
+
+        document.getElementById('capturePngBtn').addEventListener('click', () => captureImage('png'));
+        document.getElementById('captureJpgBtn').addEventListener('click', () => captureImage('jpeg'));
+
+        document.getElementById('resetCameraBtn').addEventListener('click', function() {
+            if (!model) return;
+            
+            const box = new THREE.Box3().setFromObject(model);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
+            
+            const startPosition = camera.position.clone();
+            const startTarget = controls.target.clone();
+            const startZoom = camera.zoom;
+            
+            const targetPosition = center.clone();
+            targetPosition.z = size.length() * 1.5;
+            
+            const duration = 1000;
+            const startTime = Date.now();
+            
+            function animateCameraReset() {
+                const now = Date.now();
+                const elapsed = now - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                const easeOutCubic = t => (--t) * t * t + 1;
+                const easedProgress = easeOutCubic(progress);
+                
+                camera.position.lerpVectors(startPosition, targetPosition, easedProgress);
+                controls.target.lerpVectors(startTarget, center, easedProgress);
+                
+                controls.update();
+                camera.zoom = THREE.MathUtils.lerp(startZoom, 10, easedProgress);
+                camera.updateProjectionMatrix();
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animateCameraReset);
+                }
+            }
+            
+            animateCameraReset();
+        });
+
+        document.getElementById('captureVideoBtn').addEventListener('click', async function() {
+    if (!model) {
+        updateStatus("❌ No hay modelo cargado", true);
+        return;
+    }
+
+    const btn = this;
+    btn.disabled = true;
+    updateStatus("🚀 Iniciando grabación en 8K/120FPS...");
+
+    try {
+        // 1. Configuración EXTREMA
+        const duration = 8; // segundos
+        const fps = 120; // 120 FPS - Fluidez cinematográfica
+        const width = 3840; // Resolución 4K (para downsampling)
+        const height = 2160;
+        const targetAspect = 16 / 9;
+        const bitrate = 50000000; // 50 Mbps - Máxima calidad
+
+        // 2. Canvas de ultra alta resolución
+        const captureCanvas = document.createElement('canvas');
+        captureCanvas.width = width;
+        captureCanvas.height = height;
+        const ctx = captureCanvas.getContext('2d', {
+            willReadFrequently: true,
+            alpha: false,
+            colorSpace: 'display-p3' // Mejor gama de colores
+        });
+
+        // 3. Configuración PROFESIONAL de MediaRecorder
+        const stream = captureCanvas.captureStream(fps);
+        const codecs = ['av01', 'vp9', 'hev1', 'h265', 'h264', 'vp8'];
+        let mimeType = 'video/webm';
+        
+        for (const codec of codecs) {
+            const type = `video/webm;codecs=${codec}`;
+            if (MediaRecorder.isTypeSupported(type)) {
+                mimeType = type;
+                break;
+            }
+        }
+
+        const recorder = new MediaRecorder(stream, {
+            mimeType: mimeType,
+            videoBitsPerSecond: bitrate,
+            bitsPerSecond: bitrate,
+            audioBitsPerSecond: 0
+        });
+
+        // 4. Variables para rotación HIPER-FLUIDA
+        const center = new THREE.Vector3().copy(controls.target);
+        const startPos = new THREE.Vector3().copy(camera.position);
+        const radius = startPos.distanceTo(center);
+        const startAngle = Math.atan2(startPos.z - center.z, startPos.x - center.x);
+        const frameDelay = 1000 / fps;
+        let frameCount = 0;
+        let lastFrameTime = performance.now();
+        let droppedFrames = 0;
+
+        // 5. Renderizado con DOBLE BUFFER y Motion Blur
+        const renderCanvas = document.createElement('canvas');
+        renderCanvas.width = width;
+        renderCanvas.height = height;
+        const renderCtx = renderCanvas.getContext('2d');
+
+        function renderFrame(targetTime) {
+            const now = performance.now();
+            const elapsed = now - startTime;
+            const progress = Math.min(1, elapsed / (duration * 1000));
+            
+            // Cálculo de posición con easing cinematico
+            const smoothProgress = cubicEaseInOut(progress);
+            const angle = startAngle + (smoothProgress * Math.PI * 2);
+            
+            // Actualización de posición de cámara
+            camera.position.x = center.x + Math.cos(angle) * radius;
+            camera.position.z = center.z + Math.sin(angle) * radius;
+            camera.lookAt(center);
+            
+            // Renderizado en canvas auxiliar
+            renderer.render(scene, camera);
+            renderCtx.clearRect(0, 0, width, height);
+            renderCtx.drawImage(renderer.domElement, 0, 0, width, height);
+            
+            // Composición final con bordes negros
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, width, height);
+            
+            const renderAspect = renderer.domElement.width / renderer.domElement.height;
+            let drawWidth, drawHeight, offsetX, offsetY;
+            
+            if (renderAspect > targetAspect) {
+                drawHeight = height;
+                drawWidth = height * renderAspect;
+                offsetX = (width - drawWidth) / 2;
+                offsetY = 0;
+            } else {
+                drawWidth = width;
+                drawHeight = width / renderAspect;
+                offsetX = 0;
+                offsetY = (height - drawHeight) / 2;
+            }
+            
+            // Aplicar ligero motion blur para mayor fluidez percibida
+            ctx.globalAlpha = 0.9;
+            ctx.drawImage(renderCanvas, offsetX, offsetY, drawWidth, drawHeight);
+            ctx.globalAlpha = 1.0;
+            
+            frameCount++;
+            
+            // Control de FPS preciso
+            const currentFPS = 1000 / (now - lastFrameTime);
+            lastFrameTime = now;
+            
+            if (currentFPS < fps * 0.9) {
+                droppedFrames++;
+            }
+            
+            // Feedback en tiempo real
+            if (frameCount % 10 === 0) {
+                updateStatus(
+                    `🔄 ${Math.floor(progress * 100)}% | ` +
+                    `FPS: ${currentFPS.toFixed(1)}/${fps} | ` +
+                    `Dropped: ${droppedFrames} | ` +
+                    `Size: ${videoChunks.reduce((a, b) => a + b.size, 0) / 1024 / 1024 | 0}MB`
+                );
+            }
+            
+            if (progress < 1) {
+                const nextFrameTime = startTime + (frameCount * frameDelay);
+                const delay = Math.max(0, nextFrameTime - performance.now());
+                setTimeout(() => renderFrame(nextFrameTime), delay);
+            }
+        }
+
+        // Función de easing mejorada
+        function cubicEaseInOut(t) {
+            return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        }
+
+        // 6. Configuración de grabación AVANZADA
+        const videoChunks = [];
+        recorder.ondataavailable = (e) => {
+            if (e.data.size > 0) {
+                videoChunks.push(e.data);
+            }
+        };
+        
+        recorder.onstop = async () => {
+            if (videoChunks.length === 0) {
+                updateStatus("❌ Error: No se capturaron datos", true);
+                btn.disabled = false;
+                return;
+            }
+            
+            updateStatus("🎬 Finalizando video (esto puede tardar)...");
+            
+            try {
+                const blob = new Blob(videoChunks, { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `360-ULTRA-${new Date().toISOString().slice(0,10)}.webm`;
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                
+                setTimeout(() => {
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    updateStatus(
+                        `✅ Video listo!\n` +
+                        `📊 Frames: ${frameCount} (${(frameCount / duration).toFixed(1)} FPS)\n` +
+                        `💾 Tamaño: ${(blob.size / 1024 / 1024).toFixed(2)} MB\n` +
+                        `⚠️ Frames perdidos: ${droppedFrames}`
+                    );
+                    btn.disabled = false;
+                }, 100);
+                
+            } catch (error) {
+                console.error("Error al generar el video:", error);
+                updateStatus(`❌ Error final: ${error.message}`, true);
+                btn.disabled = false;
+            }
+        };
+        
+        // 7. Pre-calentamiento AGGRESIVO
+        updateStatus("🔥 Pre-renderizando 120 frames...");
+        await new Promise(resolve => {
+            let preheatCount = 0;
+            const preheat = () => {
+                renderer.render(scene, camera);
+                if (++preheatCount < 120) {
+                    requestAnimationFrame(preheat);
+                } else {
+                    resolve();
+                }
+            };
+            preheat();
+        });
+        
+        // 8. Iniciar grabación con temporización PERFECTA
+        const startTime = performance.now();
+        recorder.start(500); // Chunks grandes para mejor eficiencia
+        
+        // Esperar estabilización
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // Iniciar captura
+        renderFrame(startTime);
+        
+        // 9. Detención controlada con margen EXTRA
+        setTimeout(() => {
+            if (recorder.state === 'recording') {
+                updateStatus("⏳ Finalizando grabación (últimos frames)...");
+                recorder.stop();
+            }
+        }, duration * 1000 + 3000); // Margen extra largo
+
+    } catch (error) {
+        console.error("Error crítico:", error);
+        updateStatus(`💥 Error grave: ${error.message}`, true);
+        btn.disabled = false;
+    }
+});
+
+
+        document.getElementById('downloadTemplateBtn').addEventListener('click', function() {
+            const link = document.createElement('a');
+            link.href = 'plantilla.pdf';
+            link.download = 'plantilla.pdf';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            updateStatus("Plantilla descargada");
+        });
+
+        // 8. Controles de iluminación
+        document.getElementById('ambientIntensity').addEventListener('input', function(e) {
+            const value = parseFloat(e.target.value);
+            ambientLight.intensity = value;
+            document.getElementById('ambientIntensityValue').textContent = value.toFixed(1);
+            renderer.render(scene, camera); // Forzar renderizado inmediato
+        });
+
+        document.getElementById('ambientColor').addEventListener('input', function(e) {
+            ambientLight.color.set(e.target.value);
+            renderer.render(scene, camera);
+        });
+
+        document.getElementById('directionalIntensity').addEventListener('input', function(e) {
+            const value = parseFloat(e.target.value);
+            mainLight.intensity = value; // Usamos mainLight en lugar de directionalLight
+            document.getElementById('directionalIntensityValue').textContent = value.toFixed(1);
+            renderer.render(scene, camera);
+        });
+
+        document.getElementById('directionalColor').addEventListener('input', function(e) {
+            mainLight.color.set(e.target.value); // Usamos mainLight
+            renderer.render(scene, camera);
+        });
+
+        // Control de posición de la luz direccional (REEMPLAZA ESTO)
+document.getElementById('lightPosX').addEventListener('input', function(e) {
+    const value = parseFloat(e.target.value);
+    mainLight.position.x = value; // Cambiado de directionalLight a mainLight
+    document.getElementById('lightPosXValue').textContent = value.toFixed(1);
+    renderer.render(scene, camera);
+});
+
+document.getElementById('lightPosY').addEventListener('input', function(e) {
+    const value = parseFloat(e.target.value);
+    mainLight.position.y = value; // Cambiado de directionalLight a mainLight
+    document.getElementById('lightPosYValue').textContent = value.toFixed(1);
+    renderer.render(scene, camera);
+});
+
+document.getElementById('lightPosZ').addEventListener('input', function(e) {
+    const value = parseFloat(e.target.value);
+    mainLight.position.z = value; // Cambiado de directionalLight a mainLight
+    document.getElementById('lightPosZValue').textContent = value.toFixed(1);
+    renderer.render(scene, camera);
+});
+
+        document.getElementById('roughness').addEventListener('input', function(e) {
+            const value = parseFloat(e.target.value);
+            if (model) {
+                model.traverse((node) => {
+                    if (node.isMesh && node.material) {
+                        node.material.roughness = value;
+                        node.material.needsUpdate = true;
+                    }
+                });
+            }
+            document.getElementById('roughnessValue').textContent = value.toFixed(2);
+        });
+
+        document.getElementById('backgroundColor').addEventListener('input', function(e) {
+            backgroundTexture = null; // Eliminar textura de fondo
+            scene.background = new THREE.Color(e.target.value);
+            originalBackground = scene.background.clone();
+            renderer.setClearAlpha(1);
+        });
+
+        document.getElementById('transparentBgBtn').addEventListener('click', function() {
+            backgroundTexture = null; // Eliminar textura de fondo
+            scene.background = null;
+            renderer.setClearAlpha(0);
+        });
+
+        document.getElementById('resetLightingBtn').addEventListener('click', function() {
+            // Restaurar valores por defecto
+            ambientLight.intensity = 0.2;
+            ambientLight.color.set('#ffffff');
+            directionalLight.intensity = 0.5;
+            directionalLight.color.set('#ffffff');
+            directionalLight.position.set(3, 10, 5);    
+            backgroundTexture = null;
+            scene.background = originalBackground;
+            renderer.setClearAlpha(1);
+            
+            if (model) {
+                model.traverse((node) => {
+                    if (node.isMesh && node.material) {
+                        node.material.roughness = 2;
+                        node.material.needsUpdate = true;
+                    }
+                });
+            }
+            
+            scene.background = originalBackground;
+            renderer.setClearAlpha(1);
+            
+            // Actualizar controles
+            document.getElementById('ambientIntensity').value = 0.2;
+            document.getElementById('ambientColor').value = '#ffffff';
+            document.getElementById('directionalIntensity').value = 0.5;
+            document.getElementById('directionalColor').value = '#ffffff';
+            document.getElementById('roughness').value = 2.0;
+            document.getElementById('backgroundColor').value = '#f0f0f0';
+            document.getElementById('lightPosX').value = 3;
+            document.getElementById('lightPosY').value = 10;
+            document.getElementById('lightPosZ').value = 5;
+            
+            document.getElementById('ambientIntensityValue').textContent = '0.2';
+            document.getElementById('directionalIntensityValue').textContent = '0.5';
+            document.getElementById('roughnessValue').textContent = '2.0';
+            document.getElementById('lightPosXValue').textContent = '3.0';
+            document.getElementById('lightPosYValue').textContent = '10.0';
+            document.getElementById('lightPosZValue').textContent = '5.0';
+        });
+
+        // 9. Animación y redimensionado
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', function() {
+            const aspect = window.innerWidth / window.innerHeight;
+            
+            // Para cámara ortográfica
+            camera.left = -5 * aspect;
+            camera.right = 5 * aspect;
+            camera.top = 5;
+            camera.bottom = -5;
+            
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            
+        });
+                       // 10. Control para móviles - Versión corregida
+        function setupMobileControls() {
+            const toggleMainBtn = document.getElementById('toggleMainBtn');
+            const toggleLightingBtn = document.getElementById('toggleLightingBtn');
+            const controlsPanel = document.getElementById('controls');
+            const lightingPanel = document.getElementById('lighting-controls');
+            
+            // Solo si los elementos existen
+            if (toggleMainBtn && toggleLightingBtn && controlsPanel && lightingPanel) {
+                // Mostrar/ocultar paneles
+                toggleMainBtn.addEventListener('click', () => {
+                    controlsPanel.style.display = controlsPanel.style.display === 'none' ? 'block' : 'none';
+                    // Ocultar lighting panel cuando se muestra main
+                    if (controlsPanel.style.display === 'block') {
+                        lightingPanel.style.display = 'none';
+                    }
+                });
+                
+                toggleLightingBtn.addEventListener('click', () => {
+                    lightingPanel.style.display = lightingPanel.style.display === 'none' ? 'block' : 'none';
+                    // Ocultar main panel cuando se muestra lighting
+                    if (lightingPanel.style.display === 'block') {
+                        controlsPanel.style.display = 'none';
+                    }
+                });
+                
+                // Ajustar inicialmente para móvil
+                function handleMobileLayout() {
+                    const isMobile = window.innerWidth <= 768;
+                    if (isMobile) {
+                        controlsPanel.style.display = 'none';
+                        lightingPanel.style.display = 'none';
+                    } else {
+                        controlsPanel.style.display = 'block';
+                        lightingPanel.style.display = 'block';
+                    }
+                }
+                
+                // Ejecutar al cargar y al redimensionar
+                window.addEventListener('load', handleMobileLayout);
+                window.addEventListener('resize', handleMobileLayout);
+                handleMobileLayout(); // Inicializar
+            }
+        }
+        
+        // Llamar a la función después de que el DOM esté cargado
+        document.addEventListener('DOMContentLoaded', setupMobileControls);
+
+       // Función mejorada para aplicar colores
+function applySolidColor(colorHex) {
+    // 1. Crear textura de color sólido
+    const size = 2048; // Textura HD
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    
+    // Rellenar con patrón suave para evitar banding
+    const gradient = ctx.createLinearGradient(0, 0, size, size);
+    gradient.addColorStop(0, colorHex);
+    gradient.addColorStop(1, tinycolor(colorHex).lighten(5).toHexString());
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, size, size);
+    
+    // 2. Crear textura Three.js
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.flipY = false;
+    texture.encoding = THREE.sRGBEncoding;
+    texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    
+    // 3. Aplicar a todas las texturas objetivo
+    targetTextures.forEach(item => {
+        try {
+            // Copiar parámetros UV originales
+            texture.repeat.copy(item.uvParams.repeat);
+            texture.offset.copy(item.uvParams.offset);
+            texture.rotation = item.uvParams.rotation;
+            texture.wrapS = item.uvParams.wrapS;
+            texture.wrapT = item.uvParams.wrapT;
+            
+            // Clonar material y aplicar textura
+            const newMaterial = item.material.clone();
+            newMaterial.map = texture;
+            newMaterial.needsUpdate = true;
+            
+            item.node.material = newMaterial;
+        } catch (error) {
+            console.error("Error aplicando color:", error);
+        }
+    });
+    
+    // 4. Actualizar escena
+    renderer.render(scene, camera);
+    updateStatus(`Color aplicado: ${colorHex}`);
+}
+
+// Inicializar paleta (añade esto también)
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.color-swatch').forEach(swatch => {
+        swatch.addEventListener('click', function() {
+            const colorHex = this.getAttribute('data-color');
+            
+            // Resaltar selección
+            document.querySelectorAll('.color-swatch').forEach(s => {
+                s.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            // Aplicar color
+            applySolidColor(colorHex);
+        });
+    });
+    
+    // Añadir la librería tinycolor para manipulación de colores
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/tinycolor/1.4.2/tinycolor.min.js';
+    script.onload = () => console.log('TinyColor cargado');
+    document.head.appendChild(script);
+});
+    </script>
+            <!-- Botones para móvil simplificados -->
+    <button id="toggleMainBtn" class="mobile-control-btn">☰</button>
+    <button id="toggleLightingBtn" class="mobile-control-btn">⚙️</button>
+    <div id="color-palette">
+        <!-- Degradados rojos -->
+        <div class="color-swatch" style="background: #ffcdd2;" data-color="#ffcdd2"></div>
+        <div class="color-swatch" style="background: #ef9a9a;" data-color="#ef9a9a"></div>
+        <div class="color-swatch" style="background: #e57373;" data-color="#e57373"></div>
+        <div class="color-swatch" style="background: #ef5350;" data-color="#ef5350"></div>
+        <div class="color-swatch" style="background: #f44336;" data-color="#f44336"></div>
+        <div class="color-swatch" style="background: #e53935;" data-color="#e53935"></div>
+        <div class="color-swatch" style="background: #d32f2f;" data-color="#d32f2f"></div>
+        <div class="color-swatch" style="background: #c62828;" data-color="#c62828"></div>
+        
+        <!-- Degradados naranjas -->
+        <div class="color-swatch" style="background: #ffccbc;" data-color="#ffccbc"></div>
+        <div class="color-swatch" style="background: #ffab91;" data-color="#ffab91"></div>
+        <div class="color-swatch" style="background: #ff8a65;" data-color="#ff8a65"></div>
+        <div class="color-swatch" style="background: #ff7043;" data-color="#ff7043"></div>
+        <div class="color-swatch" style="background: #ff5722;" data-color="#ff5722"></div>
+        <div class="color-swatch" style="background: #f4511e;" data-color="#f4511e"></div>
+        <div class="color-swatch" style="background: #e64a19;" data-color="#e64a19"></div>
+        <div class="color-swatch" style="background: #d84315;" data-color="#d84315"></div>
+        
+        <!-- Degradados amarillos -->
+        <div class="color-swatch" style="background: #fff9c4;" data-color="#fff9c4"></div>
+        <div class="color-swatch" style="background: #fff59d;" data-color="#fff59d"></div>
+        <div class="color-swatch" style="background: #fff176;" data-color="#fff176"></div>
+        <div class="color-swatch" style="background: #ffee58;" data-color="#ffee58"></div>
+        <div class="color-swatch" style="background: #ffeb3b;" data-color="#ffeb3b"></div>
+        <div class="color-swatch" style="background: #fdd835;" data-color="#fdd835"></div>
+        <div class="color-swatch" style="background: #fbc02d;" data-color="#fbc02d"></div>
+        <div class="color-swatch" style="background: #f9a825;" data-color="#f9a825"></div>
+        
+        <!-- Degradados verdes -->
+        <div class="color-swatch" style="background: #c8e6c9;" data-color="#c8e6c9"></div>
+        <div class="color-swatch" style="background: #a5d6a7;" data-color="#a5d6a7"></div>
+        <div class="color-swatch" style="background: #81c784;" data-color="#81c784"></div>
+        <div class="color-swatch" style="background: #66bb6a;" data-color="#66bb6a"></div>
+        <div class="color-swatch" style="background: #4caf50;" data-color="#4caf50"></div>
+        <div class="color-swatch" style="background: #43a047;" data-color="#43a047"></div>
+        <div class="color-swatch" style="background: #388e3c;" data-color="#388e3c"></div>
+        <div class="color-swatch" style="background: #2e7d32;" data-color="#2e7d32"></div>
+        
+        <!-- Degradados azules -->
+        <div class="color-swatch" style="background: #bbdefb;" data-color="#bbdefb"></div>
+        <div class="color-swatch" style="background: #90caf9;" data-color="#90caf9"></div>
+        <div class="color-swatch" style="background: #64b5f6;" data-color="#64b5f6"></div>
+        <div class="color-swatch" style="background: #42a5f5;" data-color="#42a5f5"></div>
+        <div class="color-swatch" style="background: #2196f3;" data-color="#2196f3"></div>
+        <div class="color-swatch" style="background: #1e88e5;" data-color="#1e88e5"></div>
+        <div class="color-swatch" style="background: #1976d2;" data-color="#1976d2"></div>
+        <div class="color-swatch" style="background: #1565c0;" data-color="#1565c0"></div>
+        
+        <!-- Degradados índigo -->
+        <div class="color-swatch" style="background: #c5cae9;" data-color="#c5cae9"></div>
+        <div class="color-swatch" style="background: #9fa8da;" data-color="#9fa8da"></div>
+        <div class="color-swatch" style="background: #7986cb;" data-color="#7986cb"></div>
+        <div class="color-swatch" style="background: #5c6bc0;" data-color="#5c6bc0"></div>
+        <div class="color-swatch" style="background: #3f51b5;" data-color="#3f51b5"></div>
+        <div class="color-swatch" style="background: #3949ab;" data-color="#3949ab"></div>
+        <div class="color-swatch" style="background: #303f9f;" data-color="#303f9f"></div>
+        <div class="color-swatch" style="background: #283593;" data-color="#283593"></div>
+        
+        <!-- Degradados violetas -->
+        <div class="color-swatch" style="background: #d1c4e9;" data-color="#d1c4e9"></div>
+        <div class="color-swatch" style="background: #b39ddb;" data-color="#b39ddb"></div>
+        <div class="color-swatch" style="background: #9575cd;" data-color="#9575cd"></div>
+        <div class="color-swatch" style="background: #7e57c2;" data-color="#7e57c2"></div>
+        <div class="color-swatch" style="background: #673ab7;" data-color="#673ab7"></div>
+        <div class="color-swatch" style="background: #5e35b1;" data-color="#5e35b1"></div>
+        <div class="color-swatch" style="background: #512da8;" data-color="#512da8"></div>
+        <div class="color-swatch" style="background: #4527a0;" data-color="#4527a0"></div>
+        
+        <!-- Degradados rosas -->
+        <div class="color-swatch" style="background: #f8bbd0;" data-color="#f8bbd0"></div>
+        <div class="color-swatch" style="background: #f48fb1;" data-color="#f48fb1"></div>
+        <div class="color-swatch" style="background: #f06292;" data-color="#f06292"></div>
+        <div class="color-swatch" style="background: #ec407a;" data-color="#ec407a"></div>
+        <div class="color-swatch" style="background: #e91e63;" data-color="#e91e63"></div>
+        <div class="color-swatch" style="background: #d81b60;" data-color="#d81b60"></div>
+        <div class="color-swatch" style="background: #c2185b;" data-color="#c2185b"></div>
+        <div class="color-swatch" style="background: #ad1457;" data-color="#ad1457"></div>
+        
+        <!-- Degradados marrones -->
+        <div class="color-swatch" style="background: #d7ccc8;" data-color="#d7ccc8"></div>
+        <div class="color-swatch" style="background: #bcaaa4;" data-color="#bcaaa4"></div>
+        <div class="color-swatch" style="background: #a1887f;" data-color="#a1887f"></div>
+        <div class="color-swatch" style="background: #8d6e63;" data-color="#8d6e63"></div>
+        <div class="color-swatch" style="background: #795548;" data-color="#795548"></div>
+        <div class="color-swatch" style="background: #6d4c41;" data-color="#6d4c41"></div>
+        <div class="color-swatch" style="background: #5d4037;" data-color="#5d4037"></div>
+        <div class="color-swatch" style="background: #4e342e;" data-color="#4e342e"></div>
+         
+        <!-- Colores especiales -->
+        <div class="color-swatch" style="background: #cfd8dc;" data-color="#cfd8dc"></div>
+        <div class="color-swatch" style="background: #b0bec5;" data-color="#b0bec5"></div>
+        <div class="color-swatch" style="background: #90a4ae;" data-color="#90a4ae"></div>
+        <div class="color-swatch" style="background: #78909c;" data-color="#78909c"></div>
+        <div class="color-swatch" style="background: #607d8b;" data-color="#607d8b"></div>
+        <div class="color-swatch" style="background: #546e7a;" data-color="#546e7a"></div>
+        <div class="color-swatch" style="background: #455a64;" data-color="#455a64"></div>
+        <div class="color-swatch" style="background: #37474f;" data-color="#37474f"></div>
+        
+        <!-- Metálicos y especiales -->
+        <div class="color-swatch" style="background: #e0f7fa;" data-color="#e0f7fa"></div>
+        <div class="color-swatch" style="background: #b2ebf2;" data-color="#b2ebf2"></div>
+        <div class="color-swatch" style="background: #4dd0e1;" data-color="#4dd0e1"></div>
+        <div class="color-swatch" style="background: #00bcd4;" data-color="#00bcd4"></div>
+        <div class="color-swatch" style="background: #0097a7;" data-color="#0097a7"></div>
+        <div class="color-swatch" style="background: #00838f;" data-color="#00838f"></div>
+        <div class="color-swatch" style="background: #006064;" data-color="#006064"></div>
+        <div class="color-swatch" style="background: #032626;" data-color="#032626"></div>
+
+         <!-- Degradados grises -->
+         <div class="color-swatch" style="background: #f5f5f5;" data-color="#f5f5f5"></div>
+         <div class="color-swatch" style="background: #eeeeee;" data-color="#eeeeee"></div>
+         <div class="color-swatch" style="background: #e0e0e0;" data-color="#e0e0e0"></div>
+         <div class="color-swatch" style="background: #bdbdbd;" data-color="#bdbdbd"></div>
+         <div class="color-swatch" style="background: #9e9e9e;" data-color="#9e9e9e"></div>
+         <div class="color-swatch" style="background: #757575;" data-color="#757575"></div>
+         <div class="color-swatch" style="background: #616161;" data-color="#616161"></div>
+         <div class="color-swatch" style="background: #1c1c1c;" data-color="#1c1c1c"></div>
+    </div>
+</body>
+</html>
