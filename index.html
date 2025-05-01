@@ -245,6 +245,28 @@
         top: 10px;
     }
     
+    /* Estilos para el botón de colores en móvil */
+    #toggleColorsBtn {
+        left: 10px;
+        bottom: 10px;
+    }
+
+    #color-palette {
+        width: 90%;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: 60px;
+        max-height: 30vh;
+        overflow-y: auto;
+        display: none; /* Oculto por defecto */
+        padding: 8px;
+        gap: 3px;
+    }
+
+    .color-swatch {
+        width: 18px;
+        height: 18px;
+    }
     /* Ocultar botones en desktop */
     @media (min-width: 769px) {
         .mobile-control-btn {
@@ -262,7 +284,6 @@
         <h3 style="margin:0 0 10px 0; font-size:16px; color:#333;">3D FASHION LAB</h3>
         <input type="file" id="textureInput" accept="image/*">
         <button id="applyBtn">Aplicar Textura</button>
-        <button id="resetBtn">Restaurar Original</button>
         <button id="resetCameraBtn">Centrar 3D</button>
         <button id="downloadTemplateBtn">Descargar Plantilla</button>
         <div class="capture-buttons">
@@ -576,33 +597,17 @@ new THREE.TextureLoader().load('diseño_base.jpg',
             return appliedCount;
         }
 
-        function restoreOriginalTextures() {
-            targetTextures.forEach(item => {
-                try {
-                    const originalMaterial = item.material.clone();
-                    originalMaterial.map = item.originalTexture;
-                    originalMaterial.needsUpdate = true;
-                    item.node.material = originalMaterial;
-                } catch (error) {
-                    console.error(`Error restaurando textura:`, error);
-                }
-            });
-            
-            updateStatus("Texturas originales restauradas");
-            renderer.render(scene, camera);
-        }
-
         function captureImage(format) {
     if (!model) {
         updateStatus("No hay modelo cargado", true);
         return;
     }
 
-function updateStatus(message, isError = false) {
-    const statusElement = document.getElementById('status');
-    statusElement.textContent = message;
-    statusElement.style.color = isError ? 'red' : 'inherit';
-}
+    function updateStatus(message, isError = false) {
+        const statusElement = document.getElementById('status');
+        statusElement.textContent = message;
+        statusElement.style.color = isError ? 'red' : 'inherit';
+    }
 
     // Guardar configuración actual
     const currentBackground = scene.background;
@@ -702,14 +707,6 @@ function updateStatus(message, isError = false) {
                 );
             };
             reader.readAsDataURL(file);
-        });
-
-        document.getElementById('resetBtn').addEventListener('click', function() {
-            if (targetTextures.length > 0) {
-                restoreOriginalTextures();
-            } else {
-                updateStatus("No hay texturas para restaurar");
-            }
         });
 
         document.getElementById('capturePngBtn').addEventListener('click', () => captureImage('png'));
@@ -1019,26 +1016,26 @@ function updateStatus(message, isError = false) {
         });
 
         // Control de posición de la luz direccional (REEMPLAZA ESTO)
-document.getElementById('lightPosX').addEventListener('input', function(e) {
-    const value = parseFloat(e.target.value);
-    mainLight.position.x = value; // Cambiado de directionalLight a mainLight
-    document.getElementById('lightPosXValue').textContent = value.toFixed(1);
-    renderer.render(scene, camera);
-});
+        document.getElementById('lightPosX').addEventListener('input', function(e) {
+            const value = parseFloat(e.target.value);
+            mainLight.position.x = value; // Cambiado de directionalLight a mainLight
+            document.getElementById('lightPosXValue').textContent = value.toFixed(1);
+            renderer.render(scene, camera);
+        });
 
-document.getElementById('lightPosY').addEventListener('input', function(e) {
-    const value = parseFloat(e.target.value);
-    mainLight.position.y = value; // Cambiado de directionalLight a mainLight
-    document.getElementById('lightPosYValue').textContent = value.toFixed(1);
-    renderer.render(scene, camera);
-});
+        document.getElementById('lightPosY').addEventListener('input', function(e) {
+            const value = parseFloat(e.target.value);
+            mainLight.position.y = value; // Cambiado de directionalLight a mainLight
+            document.getElementById('lightPosYValue').textContent = value.toFixed(1);
+            renderer.render(scene, camera);
+        });
 
-document.getElementById('lightPosZ').addEventListener('input', function(e) {
-    const value = parseFloat(e.target.value);
-    mainLight.position.z = value; // Cambiado de directionalLight a mainLight
-    document.getElementById('lightPosZValue').textContent = value.toFixed(1);
-    renderer.render(scene, camera);
-});
+        document.getElementById('lightPosZ').addEventListener('input', function(e) {
+            const value = parseFloat(e.target.value);
+            mainLight.position.z = value; // Cambiado de directionalLight a mainLight
+            document.getElementById('lightPosZValue').textContent = value.toFixed(1);
+            renderer.render(scene, camera);
+        });
 
         document.getElementById('roughness').addEventListener('input', function(e) {
             const value = parseFloat(e.target.value);
@@ -1067,16 +1064,18 @@ document.getElementById('lightPosZ').addEventListener('input', function(e) {
         });
 
         document.getElementById('resetLightingBtn').addEventListener('click', function() {
-            // Restaurar valores por defecto
-            ambientLight.intensity = 0.2;
+            // Restaurar valores por defecto de iluminación
+            ambientLight.intensity = 0.15;
             ambientLight.color.set('#ffffff');
-            directionalLight.intensity = 0.5;
-            directionalLight.color.set('#ffffff');
-            directionalLight.position.set(3, 10, 5);    
-            backgroundTexture = null;
-            scene.background = originalBackground;
-            renderer.setClearAlpha(1);
-            
+            mainLight.intensity = 0.9;
+            mainLight.color.set('#ffffff');
+            mainLight.position.set(3, 5, 2);
+            fillLight.intensity = 0.6;
+            fillLight.color.set('#ffffff');
+            backLight.intensity = 0.4;
+            backLight.color.set('#ffffff');
+
+            // Restaurar material
             if (model) {
                 model.traverse((node) => {
                     if (node.isMesh && node.material) {
@@ -1085,27 +1084,45 @@ document.getElementById('lightPosZ').addEventListener('input', function(e) {
                     }
                 });
             }
-            
-            scene.background = originalBackground;
-            renderer.setClearAlpha(1);
-            
-            // Actualizar controles
-            document.getElementById('ambientIntensity').value = 0.2;
+
+            // Restaurar fondo
+            new THREE.TextureLoader().load('fondo.jpg', 
+            (texture) => {
+                texture.generateMipmaps = false;
+                texture.minFilter = THREE.LinearFilter;
+                scene.background = texture;
+                renderer.setClearAlpha(1);
+            },
+            undefined,
+            (error) => {
+                console.error("Error cargando fondo:", error);
+                // Si falla, usar color gris como respaldo
+                scene.background = new THREE.Color(0xf0f0f0);
+                renderer.setClearAlpha(1);
+            }
+        );
+
+            // Actualizar controles UI
+            document.getElementById('ambientIntensity').value = 0.15;
             document.getElementById('ambientColor').value = '#ffffff';
-            document.getElementById('directionalIntensity').value = 0.5;
+            document.getElementById('directionalIntensity').value = 0.9;
             document.getElementById('directionalColor').value = '#ffffff';
-            document.getElementById('roughness').value = 2.0;
-            document.getElementById('backgroundColor').value = '#f0f0f0';
             document.getElementById('lightPosX').value = 3;
-            document.getElementById('lightPosY').value = 10;
-            document.getElementById('lightPosZ').value = 5;
-            
-            document.getElementById('ambientIntensityValue').textContent = '0.2';
-            document.getElementById('directionalIntensityValue').textContent = '0.5';
-            document.getElementById('roughnessValue').textContent = '2.0';
-            document.getElementById('lightPosXValue').textContent = '3.0';
-            document.getElementById('lightPosYValue').textContent = '10.0';
-            document.getElementById('lightPosZValue').textContent = '5.0';
+            document.getElementById('lightPosY').value = 5;
+            document.getElementById('lightPosZ').value = 2;
+            document.getElementById('roughness').value = 2;
+            document.getElementById('backgroundColor').value = '#f0f0f0';
+
+            // Actualizar displays de valores
+            document.getElementById('ambientIntensityValue').textContent = '0.15';
+            document.getElementById('directionalIntensityValue').textContent = '0.9';
+            document.getElementById('roughnessValue').textContent = '2';
+            document.getElementById('lightPosXValue').textContent = '3';
+            document.getElementById('lightPosYValue').textContent = '5';
+            document.getElementById('lightPosZValue').textContent = '2';
+
+            // Forzar actualización de renderizado
+            renderer.render(scene, camera);
         });
 
         // 9. Animación y redimensionado
@@ -1171,6 +1188,28 @@ document.getElementById('lightPosZ').addEventListener('input', function(e) {
                 window.addEventListener('load', handleMobileLayout);
                 window.addEventListener('resize', handleMobileLayout);
                 handleMobileLayout(); // Inicializar
+            }
+            // Control para la paleta de colores en móvil
+            const toggleColorsBtn = document.getElementById('toggleColorsBtn');
+            const colorPalette = document.getElementById('color-palette');
+
+            if (toggleColorsBtn && colorPalette) {
+                toggleColorsBtn.addEventListener('click', () => {
+                    colorPalette.style.display = colorPalette.style.display === 'none' ? 'flex' : 'none';
+                });
+
+                // Ajustar inicialmente para móvil
+                function handleColorPalette() {
+                    const isMobile = window.innerWidth <= 768;
+                    if (isMobile) {
+                        colorPalette.style.display = 'none';
+                    } else {
+                        colorPalette.style.display = 'flex';
+                    }
+                }
+                
+                window.addEventListener('resize', handleColorPalette);
+                handleColorPalette();
             }
         }
         
@@ -1252,6 +1291,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <!-- Botones para móvil simplificados -->
     <button id="toggleMainBtn" class="mobile-control-btn">☰</button>
     <button id="toggleLightingBtn" class="mobile-control-btn">⚙️</button>
+    <button id="toggleColorsBtn" class="mobile-control-btn">🎨</button>
     <div id="color-palette">
         <!-- Degradados rojos -->
         <div class="color-swatch" style="background: #ffcdd2;" data-color="#ffcdd2"></div>
